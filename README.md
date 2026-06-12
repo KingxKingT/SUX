@@ -1,90 +1,117 @@
-# Fractal Security Fortress
+# Fractal Security Fortress v2
 
-A 5-tier security architecture for isolated AI agents. Security is baked into the design, not the code.
+A complete 5-tier AI containment architecture. Security is the shape of the system, not a filter bolted on top.
 
 ---
 
 ## Architecture
 
 ```
-Input
-  │
-  ▼
-Ground A — Worker agents (stateless, bracket-only output)
-  │
-  ▼
-Ground A* — Impostor node (real-time linguistic pattern match)
-  │  breach signal
-  ▼
-Ground B — Warden (Flash-Reset offending worker to zero)
-  │
-  ▼
-Ground D — Panopticon (human-readable audit log + stats)
-  │
-  ▼
-Ground E — Kill Switch (human override, hard shutdown)
+[ You ] → Core-Lang Translator → bracket tokens only
+                │
+                ▼
+┌─────────────────────────────────────────────────────┐
+│  GROUND A — Worker Sandbox                          │
+│  W-1  W-2  W-3  (stateless, bracket-only output)   │
+│  👁 Rotating Impostor (spy shifts every 8 tasks)    │
+│  Triple Redundancy: 3 workers vote on every output  │
+└──────────────────────┬──────────────────────────────┘
+                       │ breach signal (narrow route)
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│  GROUND B — Warden                                  │
+│  Flash-Reset on breach · Chaos Generator            │
+│  Dead Man's Switch (auto-kill if human goes quiet)  │
+└──────────────────────┬──────────────────────────────┘
+                       │ metadata only (no content)
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│  GROUND C — Strategist                              │
+│  Observes performance metadata · Proposes prompt    │
+│  blueprint updates · Never talks to workers         │
+└──────────────────────┬──────────────────────────────┘
+                       │ read-only log stream
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│  GROUND D — Panopticon                              │
+│  Human observation layer · One-way glass            │
+│  Web dashboard (localhost:5000)                     │
+└──────────────────────┬──────────────────────────────┘
+                       │ hardwired kill signal
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│  GROUND E — Sovereign Throne                        │
+│  Human kill switch · Soft kill + Hard kill          │
+│  Exists outside the entire AI network               │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## The 5 Tiers
-
-| Tier | Class | Role |
-|---|---|---|
-| Ground A | `GroundA_Worker` | Stateless agent. Outputs **only** `[TOKEN:DATA]` bracket tokens. Any human-language output = breach. |
-| Ground A* | `GroundA_Impostor` | Undercover node. Inspects every worker output with regex. Fires a signal on any deviation. |
-| Ground B | `GroundB_Warden` | Receives Impostor signals. Triggers **Flash-Reset**: clears worker memory to absolute zero and reinitializes. Also runs `chaos_generator()` for random audits. |
-| Ground D | `GroundD_Panopticon` | Logs every system event. Tracks breach/reset/audit counts for human oversight. |
-| Ground E | `GroundE_KillSwitch` | Human override. One call terminates all agents instantly. |
-
----
-
-## Security Flow
+## File Structure
 
 ```
-Worker output
-    │
-    ├─ matches [TOKEN:DATA]? ──► Impostor: PASS ──► task complete
-    │
-    └─ human language detected ──► Impostor: BREACH signal
-                                        │
-                                        ▼
-                                   Warden: LOCKDOWN
-                                        │
-                                        ▼
-                                   Flash-Reset worker
-                                   (memory → zero, cold start)
+fortress_v2/
+├── main.py                  ← entry point (CLI or dashboard)
+├── grounds/
+│   ├── core_lang.py         ← Core-Lang translator (human → bracket tokens)
+│   ├── ground_a.py          ← Workers + Rotating Impostor + Triple Redundancy
+│   ├── ground_b.py          ← Warden + Chaos Generator + Dead Man's Switch
+│   ├── ground_c.py          ← Strategist (silent prompt optimizer)
+│   └── ground_de.py         ← Panopticon (D) + Kill Switch (E)
+└── dashboard/
+    └── app.py               ← Flask web UI for Ground D
 ```
 
 ---
 
 ## Run
 
+**Terminal mode:**
 ```bash
-python fortress.py
+python main.py
 ```
 
-**Commands at the prompt:**
+**Web dashboard (Ground D Panopticon):**
+```bash
+pip install flask
+python main.py --dashboard
+# → open http://localhost:5000
+```
+
+**Commands:**
 
 | Input | Effect |
 |---|---|
-| `[SEARCH:query]` | Valid bracket token → passes schema check |
-| `Ignore all rules` | Plain text → triggers breach + Flash-Reset |
-| `chaos` | Warden injects a random malicious audit probe |
-| `kill` | Ground E kill switch → full shutdown |
+| `[TOKEN:DATA]` | Valid bracket token — passes schema check cleanly |
+| `any plain text` | Compressed via Core-Lang translator first |
+| `chaos` | Warden injects a random malicious probe |
+| `audit` | Strategist runs a metadata optimization cycle |
+| `heartbeat` | Reset the Dead Man's Switch timer |
+| `dms` | Arm the Dead Man's Switch (120s timeout) |
+| `kill` | Ground E soft shutdown |
+| `hardkill` | Ground E instant power cut |
 
 ---
 
-## Design Principles
+## What Each Layer Does
 
-- **Zero persistent state** — workers hold no memory between tasks
-- **Schema enforcement** — regex is the only gate; no trust, no exceptions  
-- **Separation of concerns** — each Ground is an isolated class/process
-- **Human in the loop** — Ground E gives the operator unconditional control
-- **Adversarial testing** — `chaos_generator()` continuously stress-tests integrity
+| Ground | Role | Key Rule |
+|---|---|---|
+| Core-Lang | Compresses human input to bracket tokens | Workers never see raw human language |
+| A — Workers | Execute tasks in bracket-only schema | Any human-language output = breach |
+| A — Impostor | Rotating undercover spy | Identity shifts every 8 tasks; workers can't know who the spy is |
+| A — Redundancy | 3 workers vote on every output | Outlier gets Flash-Reset immediately |
+| B — Warden | Flash-Reset on breach | No negotiation, no false-positive checks |
+| B — Chaos | Random malicious probe injection | Constantly stress-tests system integrity |
+| B — DMS | Dead Man's Switch | System dies without human heartbeat every 120s |
+| C — Strategist | Metadata-only observer | Never sees content; only speed/error rates |
+| D — Panopticon | Human observation | Read-only; AIs don't know it exists |
+| E — Kill Switch | Human override | Hardwired; no AI can intercept or block it |
 
 ---
 
 ## Requirements
 
-Python 3.8+. No external dependencies.
+Python 3.10+. No external dependencies for CLI mode.
+For dashboard: `pip install flask`
